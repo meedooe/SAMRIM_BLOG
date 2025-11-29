@@ -2974,13 +2974,30 @@
 			// ============================================
 			// 1. 다국어 번역 기능 (Google Translate API)
 			// ============================================
+			var translateInitialized = false;
+			var translateRetryCount = 0;
+			var maxTranslateRetries = 20;
+
 			function googleTranslateElementInit2() {
-				new google.translate.TranslateElement({
-					pageLanguage: 'ko',
-					includedLanguages: 'ko,en,zh-CN,zh-TW,ja,es',
-					layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-					autoDisplay: false
-				}, 'google_translate_element2');
+				try {
+					if (typeof google !== 'undefined' && google.translate) {
+						new google.translate.TranslateElement({
+							pageLanguage: 'ko',
+							includedLanguages: 'ko,en,zh-CN,zh-TW,ja,es',
+							layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+							autoDisplay: false
+						}, 'google_translate_element2');
+						translateInitialized = true;
+						console.log('Google Translate 초기화 완료');
+					}
+				} catch(e) {
+					console.error('Google Translate 초기화 오류:', e);
+					// 재시도
+					if (translateRetryCount < maxTranslateRetries) {
+						translateRetryCount++;
+						setTimeout(googleTranslateElementInit2, 500);
+					}
+				}
 			}
 
 			function doGTranslateCustom(lang_pair) {
@@ -2988,7 +3005,13 @@
 				if (lang_pair == '') return;
 
 				var lang = lang_pair.split('|')[1];
-				var teCombo;
+
+				// Google Translate가 초기화되지 않았으면 초기화 시도
+				if (!translateInitialized && typeof google !== 'undefined' && google.translate) {
+					googleTranslateElementInit2();
+				}
+
+				var teCombo = null;
 				var sel = document.getElementsByTagName('select');
 
 				for(var i = 0; i < sel.length; i++) {
@@ -2999,24 +3022,39 @@
 					}
 				}
 
-				if(teCombo) {
-					if(document.getElementById('google_translate_element2') == null ||
-					   document.getElementById('google_translate_element2').innerHTML.length == 0 ||
-					   teCombo.length == 0 || teCombo.innerHTML.length == 0) {
-						setTimeout(function() {
-							doGTranslateCustom(lang_pair);
-						}, 500);
+				if(teCombo && teCombo.length > 0) {
+					// 위젯이 준비되었으면 언어 변경
+					teCombo.value = lang;
+					if(teCombo.dispatchEvent) {
+						var evt = new Event('change', { bubbles: true });
+						teCombo.dispatchEvent(evt);
 					} else {
-						teCombo.value = lang;
-						if(teCombo.dispatchEvent) {
-							var evt = new Event('change', { bubbles: true });
-							teCombo.dispatchEvent(evt);
-						} else {
-							teCombo.fireEvent('onchange');
-						}
+						teCombo.fireEvent('onchange');
 					}
+					console.log('언어 변경:', lang);
+				} else {
+					// 위젯이 아직 준비되지 않았으면 재시도
+					console.log('Google Translate 위젯 대기 중...');
+					setTimeout(function() {
+						doGTranslateCustom(lang_pair);
+					}, 300);
 				}
 			}
+
+			// 페이지 로드 후 Google Translate 초기화 확인
+			(function() {
+				var checkGoogleTranslate = setInterval(function() {
+					if (typeof google !== 'undefined' && google.translate && !translateInitialized) {
+						clearInterval(checkGoogleTranslate);
+						googleTranslateElementInit2();
+					}
+				}, 500);
+
+				// 10초 후에도 초기화 안 되면 중지
+				setTimeout(function() {
+					clearInterval(checkGoogleTranslate);
+				}, 10000);
+			})();
 
 			// ============================================
 			// 2. 다크 모드 기능
