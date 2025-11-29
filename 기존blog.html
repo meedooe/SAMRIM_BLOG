@@ -2961,5 +2961,171 @@
 				pageLoaded = true;
 			}
 		</script>
+
+		<!-- 다국어 번역, 다크모드, 글자 크기 기능 구현 -->
+		<script>
+			// ============================================
+			// 1. 다국어 번역 기능 (Google Translate API)
+			// ============================================
+			function googleTranslateElementInit2() {
+				new google.translate.TranslateElement({
+					pageLanguage: 'ko',
+					includedLanguages: 'ko,en,zh-CN,zh-TW,ja,es',
+					layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+					autoDisplay: false
+				}, 'google_translate_element2');
+			}
+
+			function doGTranslateCustom(lang_pair) {
+				if (lang_pair.value) lang_pair = lang_pair.value;
+				if (lang_pair == '') return;
+
+				var lang = lang_pair.split('|')[1];
+				var teCombo;
+				var sel = document.getElementsByTagName('select');
+
+				for(var i = 0; i < sel.length; i++) {
+					var selClass = sel[i].className;
+					if(selClass && selClass.indexOf('goog-te-combo') != -1) {
+						teCombo = sel[i];
+						break;
+					}
+				}
+
+				if(teCombo) {
+					if(document.getElementById('google_translate_element2') == null ||
+					   document.getElementById('google_translate_element2').innerHTML.length == 0 ||
+					   teCombo.length == 0 || teCombo.innerHTML.length == 0) {
+						setTimeout(function() {
+							doGTranslateCustom(lang_pair);
+						}, 500);
+					} else {
+						teCombo.value = lang;
+						if(teCombo.dispatchEvent) {
+							var evt = new Event('change', { bubbles: true });
+							teCombo.dispatchEvent(evt);
+						} else {
+							teCombo.fireEvent('onchange');
+						}
+					}
+				}
+			}
+
+			// ============================================
+			// 2. 다크 모드 기능
+			// ============================================
+			(function() {
+				// 페이지 로드 시 저장된 다크모드 설정 확인
+				var isDarkMode = localStorage.getItem('darkMode');
+				var defaultDarkMode = document.getElementById('default-dark-mode');
+				var forcedDarkMode = document.getElementById('forced-dark-mode');
+
+				// 강제 다크모드가 활성화된 경우
+				if(forcedDarkMode && forcedDarkMode.value === 'true') {
+					document.body.classList.add('dark-mode');
+					updateDarkModeButtons(true);
+					return;
+				}
+
+				// localStorage에 저장된 설정이 있으면 적용
+				if(isDarkMode === 'true') {
+					document.body.classList.add('dark-mode');
+					updateDarkModeButtons(true);
+				} else if(isDarkMode === 'false') {
+					document.body.classList.remove('dark-mode');
+					updateDarkModeButtons(false);
+				} else if(defaultDarkMode && defaultDarkMode.value === 'true') {
+					// 기본값이 다크모드인 경우
+					document.body.classList.add('dark-mode');
+					updateDarkModeButtons(true);
+				}
+			})();
+
+			function setDarkMode(mode) {
+				var forcedDarkMode = document.getElementById('forced-dark-mode');
+
+				// 강제 다크모드가 활성화된 경우 변경 불가
+				if(forcedDarkMode && forcedDarkMode.value === 'true') {
+					return;
+				}
+
+				if(mode === '+') {
+					// 다크모드 켜기
+					document.body.classList.add('dark-mode');
+					localStorage.setItem('darkMode', 'true');
+					updateDarkModeButtons(true);
+				} else if(mode === '-') {
+					// 다크모드 끄기
+					document.body.classList.remove('dark-mode');
+					localStorage.setItem('darkMode', 'false');
+					updateDarkModeButtons(false);
+				}
+			}
+
+			function updateDarkModeButtons(isDark) {
+				// 사이드바 버튼 업데이트
+				var btnDark = document.querySelector('.dark-mode-btn-dark');
+				var btnDefault = document.querySelector('.dark-mode-btn-default');
+
+				if(btnDark && btnDefault) {
+					if(isDark) {
+						btnDark.style.display = 'none';
+						btnDefault.style.display = 'inline-block';
+					} else {
+						btnDark.style.display = 'inline-block';
+						btnDefault.style.display = 'none';
+					}
+				}
+
+				// 플로팅 버튼 업데이트
+				var floatingOn = document.querySelector('.dark-mode-on-btn');
+				var floatingOff = document.querySelector('.dark-mode-off-btn');
+
+				if(floatingOn && floatingOff) {
+					if(isDark) {
+						floatingOn.style.display = 'block';
+						floatingOff.style.display = 'none';
+					} else {
+						floatingOn.style.display = 'none';
+						floatingOff.style.display = 'block';
+					}
+				}
+			}
+
+			// ============================================
+			// 3. 글자 크기 조절 기능
+			// ============================================
+			(function() {
+				// 페이지 로드 시 저장된 글자 크기 설정 확인
+				var savedFontSize = localStorage.getItem('fontSize');
+				if(savedFontSize) {
+					document.documentElement.style.fontSize = savedFontSize + 'px';
+				}
+			})();
+
+			function changeFontSize(type) {
+				var htmlElement = document.documentElement;
+				var currentSize = parseFloat(window.getComputedStyle(htmlElement).fontSize);
+				var newSize;
+
+				// 기본 폰트 크기 가져오기 (설정값 또는 18px)
+				var defaultSizeInput = document.querySelector('[##_var_html-font-size_##]');
+				var defaultSize = 18; // 기본값
+
+				if(type === '+') {
+					// 글자 크기 증가 (2px씩)
+					newSize = Math.min(currentSize + 2, 30); // 최대 30px
+				} else if(type === '-') {
+					// 글자 크기 감소 (2px씩)
+					newSize = Math.max(currentSize - 2, 12); // 최소 12px
+				} else {
+					// 기본값으로 리셋
+					newSize = defaultSize;
+				}
+
+				htmlElement.style.fontSize = newSize + 'px';
+				localStorage.setItem('fontSize', newSize);
+			}
+		</script>
 	</body>
 </html>
