@@ -2843,8 +2843,8 @@
 				<div class="toast"></div>
 			</div>
 
-			<!-- 배경음악 태그 -->
-			<audio id='bgm' crossorigin='anonymous' muted></audio>
+			<!-- 배경음악 태그 (YouTube Player) -->
+			<div id='bgm-player' style="display:none;"></div>
 
 			<!-- 1픽셀 이미지 -->
 			<img id="blank-img" src="./images/blank.png" style="display:none;">
@@ -3206,73 +3206,83 @@
 			}
 
 			// ============================================
-			// 4. 배경음악 플레이어 기능
+			// 4. 배경음악 플레이어 기능 (YouTube IFrame API)
 			// ============================================
 			var bgmPlayer = (function() {
-				var audio = document.getElementById('bgm');
+				var player = null;
 				var currentTrackIndex = 0;
 				var playlist = [];
-				var isMuted = false;
-				var currentVolume = 0.5;
+				var currentVolume = 50; // YouTube는 0-100
+				var playerReady = false;
 
 				// 플레이리스트 초기화
 				function initPlaylist() {
-					// 기본 음악 (무료 샘플 음악)
+					// 기본 YouTube 음악 플레이리스트
 					playlist = [
 						{
-							title: "Chill Lofi Beat",
-							src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+							title: "NewJeans (뉴진스) 'ETA' Official MV",
+							videoId: "UochJ3rj9XM"
 						},
 						{
-							title: "Acoustic Breeze",
-							src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+							title: "NewJeans (뉴진스) 'OMG' Official MV",
+							videoId: "sVTy_wmn5SU"
 						},
 						{
-							title: "Sunny Day",
-							src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+							title: "NewJeans (뉴진스) 'Ditto' Official MV",
+							videoId: "Rrf8uQFvICE"
 						}
 					];
 
-					// 티스토리 설정에서 음악 URL 가져오기
+					// 티스토리 설정에서 YouTube URL 또는 비디오 ID 가져오기
+					var customPlaylist = [];
 					for(var i = 1; i <= 10; i++) {
 						var srcInput = document.getElementById('bgm-src-' + i);
 						var titleInput = document.getElementById('bgm-title-' + i);
 
 						if(srcInput && srcInput.value && srcInput.value.trim() !== '') {
-							// 첫 번째 커스텀 음악이면 기본 플레이리스트 초기화
-							if(i === 1 && srcInput.value.trim() !== '') {
-								playlist = [];
+							var videoId = extractYouTubeId(srcInput.value.trim());
+							if(videoId) {
+								customPlaylist.push({
+									title: titleInput && titleInput.value ? titleInput.value : 'YouTube 음악 ' + i,
+									videoId: videoId
+								});
 							}
-
-							playlist.push({
-								title: titleInput && titleInput.value ? titleInput.value : '배경음악 ' + i,
-								src: srcInput.value
-							});
 						}
 					}
 
-					// 플레이리스트가 비어있으면 기본 음악 사용
-					if(playlist.length === 0) {
-						playlist = [
-							{
-								title: "기본 배경음악",
-								src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-							}
-						];
+					// 커스텀 플레이리스트가 있으면 사용
+					if(customPlaylist.length > 0) {
+						playlist = customPlaylist;
+					}
+				}
+
+				// YouTube URL에서 비디오 ID 추출
+				function extractYouTubeId(url) {
+					// 이미 비디오 ID만 있는 경우
+					if(url.length === 11 && url.indexOf('/') === -1 && url.indexOf('?') === -1) {
+						return url;
 					}
 
-					// 오디오 이벤트 리스너
-					audio.addEventListener('ended', function() {
-						nextBgm('+');
-					});
+					// YouTube URL 패턴
+					var patterns = [
+						/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\?]+)/,
+						/youtube\.com\/embed\/([^&\?]+)/,
+						/youtube\.com\/v\/([^&\?]+)/
+					];
 
-					// 볼륨 초기 설정
-					audio.volume = currentVolume;
+					for(var i = 0; i < patterns.length; i++) {
+						var match = url.match(patterns[i]);
+						if(match && match[1]) {
+							return match[1];
+						}
+					}
+
+					return null;
 				}
 
 				// 트랙 로드
 				function loadTrack(index) {
-					if(playlist.length === 0) return;
+					if(playlist.length === 0 || !player) return;
 
 					currentTrackIndex = index % playlist.length;
 					if(currentTrackIndex < 0) {
@@ -3280,64 +3290,130 @@
 					}
 
 					var track = playlist[currentTrackIndex];
-					audio.src = track.src;
 
 					// 현재 재생 중인 곡 제목 표시
 					var titleElement = document.getElementById('current-bgm');
 					if(titleElement) {
 						titleElement.textContent = track.title;
 					}
+
+					// YouTube 플레이어에 비디오 로드
+					if(playerReady) {
+						player.loadVideoById(track.videoId);
+					}
 				}
 
 				return {
 					init: initPlaylist,
 					loadTrack: loadTrack,
-					getAudio: function() { return audio; },
+					getPlayer: function() { return player; },
+					setPlayer: function(p) { player = p; },
 					getPlaylist: function() { return playlist; },
 					getCurrentIndex: function() { return currentTrackIndex; },
-					setCurrentIndex: function(index) { currentTrackIndex = index; },
-					isMuted: function() { return isMuted; },
-					setMuted: function(muted) { isMuted = muted; },
+					setPlayerReady: function(ready) { playerReady = ready; },
+					isPlayerReady: function() { return playerReady; },
 					getVolume: function() { return currentVolume; },
 					setVolume: function(vol) {
-						currentVolume = Math.max(0, Math.min(1, vol));
-						audio.volume = currentVolume;
+						currentVolume = Math.max(0, Math.min(100, vol));
+						if(player && playerReady) {
+							player.setVolume(currentVolume);
+						}
 					}
 				};
 			})();
 
-			// 재생/일시정지 토글
-			function toggleBgm() {
-				var audio = bgmPlayer.getAudio();
+			// YouTube IFrame API 로드
+			var tag = document.createElement('script');
+			tag.src = "https://www.youtube.com/iframe_api";
+			var firstScriptTag = document.getElementsByTagName('script')[0];
+			firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+			// YouTube IFrame API 준비 완료 시 호출되는 함수
+			function onYouTubeIframeAPIReady() {
+				bgmPlayer.init();
+
+				var player = new YT.Player('bgm-player', {
+					height: '0',
+					width: '0',
+					videoId: bgmPlayer.getPlaylist()[0].videoId,
+					playerVars: {
+						'autoplay': 0,
+						'controls': 0,
+						'modestbranding': 1,
+						'rel': 0
+					},
+					events: {
+						'onReady': onPlayerReady,
+						'onStateChange': onPlayerStateChange
+					}
+				});
+
+				bgmPlayer.setPlayer(player);
+			}
+
+			// 플레이어 준비 완료
+			function onPlayerReady(event) {
+				bgmPlayer.setPlayerReady(true);
+				bgmPlayer.setVolume(50); // 초기 볼륨 50%
+				console.log('YouTube 플레이어 준비 완료');
+			}
+
+			// 플레이어 상태 변경
+			function onPlayerStateChange(event) {
 				var statusIcon = document.getElementById('bgm-status');
 
-				if(audio.paused) {
-					// 처음 재생 시 트랙 로드
-					if(!audio.src || audio.src === '') {
-						bgmPlayer.loadTrack(0);
-					}
+				// 재생 종료 시 다음 곡
+				if(event.data === YT.PlayerState.ENDED) {
+					nextBgm('+');
+				}
 
-					audio.play().then(function() {
-						if(statusIcon) {
-							statusIcon.textContent = '⏸️';
-						}
-					}).catch(function(error) {
-						console.error('재생 오류:', error);
-						alert('음악 재생 중 오류가 발생했습니다. 음악 파일 URL을 확인해주세요.');
-					});
-				} else {
-					audio.pause();
+				// 재생 중
+				if(event.data === YT.PlayerState.PLAYING && statusIcon) {
+					statusIcon.textContent = '⏸️';
+				}
+
+				// 일시정지
+				if(event.data === YT.PlayerState.PAUSED && statusIcon) {
+					statusIcon.textContent = '▶️';
+				}
+			}
+
+			// 재생/일시정지 토글
+			function toggleBgm() {
+				var player = bgmPlayer.getPlayer();
+				var statusIcon = document.getElementById('bgm-status');
+
+				if(!player || !bgmPlayer.isPlayerReady()) {
+					alert('플레이어가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
+					return;
+				}
+
+				var state = player.getPlayerState();
+
+				if(state === YT.PlayerState.PLAYING) {
+					player.pauseVideo();
 					if(statusIcon) {
 						statusIcon.textContent = '▶️';
+					}
+				} else {
+					player.playVideo();
+					if(statusIcon) {
+						statusIcon.textContent = '⏸️';
 					}
 				}
 			}
 
 			// 다음/이전 곡
 			function nextBgm(direction) {
-				var audio = bgmPlayer.getAudio();
+				var player = bgmPlayer.getPlayer();
 				var currentIndex = bgmPlayer.getCurrentIndex();
-				var wasPlaying = !audio.paused;
+
+				if(!player || !bgmPlayer.isPlayerReady()) {
+					return;
+				}
+
+				var state = player.getPlayerState();
+				var wasPlaying = (state === YT.PlayerState.PLAYING);
 
 				if(direction === '+') {
 					bgmPlayer.loadTrack(currentIndex + 1);
@@ -3347,43 +3423,53 @@
 
 				// 재생 중이었으면 자동 재생
 				if(wasPlaying) {
-					audio.play().catch(function(error) {
-						console.error('재생 오류:', error);
-					});
+					setTimeout(function() {
+						player.playVideo();
+					}, 500);
 				}
 			}
 
 			// 음소거 토글
 			function bgmMute() {
-				var audio = bgmPlayer.getAudio();
+				var player = bgmPlayer.getPlayer();
 				var muteBtn = document.getElementById('bgm-mute');
 
-				audio.muted = !audio.muted;
-				bgmPlayer.setMuted(audio.muted);
+				if(!player || !bgmPlayer.isPlayerReady()) {
+					return;
+				}
 
-				if(muteBtn) {
-					muteBtn.textContent = audio.muted ? '🔇' : '🔊';
+				if(player.isMuted()) {
+					player.unMute();
+					if(muteBtn) {
+						muteBtn.textContent = '🔊';
+					}
+				} else {
+					player.mute();
+					if(muteBtn) {
+						muteBtn.textContent = '🔇';
+					}
 				}
 			}
 
 			// 볼륨 조절
 			function bgmVolume(direction) {
+				var player = bgmPlayer.getPlayer();
+
+				if(!player || !bgmPlayer.isPlayerReady()) {
+					return;
+				}
+
 				var currentVol = bgmPlayer.getVolume();
 				var newVol;
 
 				if(direction === '+') {
-					newVol = Math.min(currentVol + 0.1, 1.0);
+					newVol = Math.min(currentVol + 10, 100);
 				} else {
-					newVol = Math.max(currentVol - 0.1, 0);
+					newVol = Math.max(currentVol - 10, 0);
 				}
 
 				bgmPlayer.setVolume(newVol);
 			}
-
-			// 페이지 로드 시 배경음악 초기화
-			window.addEventListener('DOMContentLoaded', function() {
-				bgmPlayer.init();
-			});
 		</script>
 	</body>
 </html>
