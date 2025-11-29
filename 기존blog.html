@@ -3106,7 +3106,8 @@
 				// 페이지 로드 시 저장된 글자 크기 설정 확인
 				var savedFontSize = localStorage.getItem('fontSize');
 				if(savedFontSize) {
-					document.documentElement.style.fontSize = savedFontSize + 'px';
+					// !important를 사용하여 CSS의 !important를 덮어씀
+					document.documentElement.style.setProperty('font-size', savedFontSize + 'px', 'important');
 				}
 			})();
 
@@ -3115,9 +3116,8 @@
 				var currentSize = parseFloat(window.getComputedStyle(htmlElement).fontSize);
 				var newSize;
 
-				// 기본 폰트 크기 가져오기 (설정값 또는 18px)
-				var defaultSizeInput = document.querySelector('[##_var_html-font-size_##]');
-				var defaultSize = 18; // 기본값
+				// 기본 폰트 크기 (CSS 기본값 18px)
+				var defaultSize = 18;
 
 				if(type === '+') {
 					// 글자 크기 증가 (2px씩)
@@ -3128,9 +3128,15 @@
 				} else {
 					// 기본값으로 리셋
 					newSize = defaultSize;
+					// 기본값으로 리셋 시 localStorage 삭제
+					localStorage.removeItem('fontSize');
+					// CSS 기본값 사용을 위해 인라인 스타일 제거
+					htmlElement.style.removeProperty('font-size');
+					return;
 				}
 
-				htmlElement.style.fontSize = newSize + 'px';
+				// !important를 사용하여 CSS의 font-size: 18px !important를 덮어씀
+				htmlElement.style.setProperty('font-size', newSize + 'px', 'important');
 				localStorage.setItem('fontSize', newSize);
 			}
 		</script>
