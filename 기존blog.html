@@ -2974,43 +2974,71 @@
 			// ============================================
 			// 1. 다국어 번역 기능 (Google Translate API)
 			// ============================================
-			var translateInitialized = false;
-			var translateRetryCount = 0;
-			var maxTranslateRetries = 20;
 
+			// 쿠키 설정 함수
+			function setCookie(name, value, days, domain) {
+				var expires = "";
+				if (days) {
+					var date = new Date();
+					date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+					expires = "; expires=" + date.toUTCString();
+				}
+				var domainStr = domain ? "; domain=" + domain : "";
+				document.cookie = name + "=" + (value || "") + expires + domainStr + "; path=/";
+			}
+
+			// 쿠키 읽기 함수
+			function getCookie(name) {
+				var nameEQ = name + "=";
+				var ca = document.cookie.split(';');
+				for(var i = 0; i < ca.length; i++) {
+					var c = ca[i];
+					while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+					if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+				}
+				return null;
+			}
+
+			// Google Translate 초기화 함수
 			function googleTranslateElementInit2() {
-				try {
-					if (typeof google !== 'undefined' && google.translate) {
-						new google.translate.TranslateElement({
-							pageLanguage: 'ko',
-							includedLanguages: 'ko,en,zh-CN,zh-TW,ja,es',
-							layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-							autoDisplay: false
-						}, 'google_translate_element2');
-						translateInitialized = true;
-						console.log('Google Translate 초기화 완료');
-					}
-				} catch(e) {
-					console.error('Google Translate 초기화 오류:', e);
-					// 재시도
-					if (translateRetryCount < maxTranslateRetries) {
-						translateRetryCount++;
-						setTimeout(googleTranslateElementInit2, 500);
-					}
+				if (typeof google !== 'undefined' && google.translate) {
+					new google.translate.TranslateElement({
+						pageLanguage: 'ko',
+						includedLanguages: 'ko,en,zh-CN,zh-TW,ja,es',
+						layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+						autoDisplay: false
+					}, 'google_translate_element2');
 				}
 			}
 
+			// 다국어 번역 함수 - 쿠키 기반 방식
 			function doGTranslateCustom(lang_pair) {
 				if (lang_pair.value) lang_pair = lang_pair.value;
 				if (lang_pair == '') return;
 
 				var lang = lang_pair.split('|')[1];
 
-				// Google Translate가 초기화되지 않았으면 초기화 시도
-				if (!translateInitialized && typeof google !== 'undefined' && google.translate) {
-					googleTranslateElementInit2();
+				// 현재 도메인 가져오기
+				var domain = window.location.hostname;
+				var rootDomain = domain.split('.').slice(-2).join('.'); // 예: tistory.com
+
+				// 언어가 한국어(ko)면 쿠키 삭제하고 리로드
+				if(lang == 'ko') {
+					document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+					document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + rootDomain;
+					window.location.reload();
+					return;
 				}
 
+				// googtrans 쿠키 설정 (기본 경로)
+				setCookie('googtrans', '/ko/' + lang, 1);
+
+				// 루트 도메인에도 쿠키 설정
+				if(rootDomain.indexOf('.') !== -1) {
+					setCookie('googtrans', '/ko/' + lang, 1, '.' + rootDomain);
+				}
+
+				// Google Translate Element 방식도 시도
 				var teCombo = null;
 				var sel = document.getElementsByTagName('select');
 
@@ -3023,38 +3051,37 @@
 				}
 
 				if(teCombo && teCombo.length > 0) {
-					// 위젯이 준비되었으면 언어 변경
 					teCombo.value = lang;
 					if(teCombo.dispatchEvent) {
-						var evt = new Event('change', { bubbles: true });
-						teCombo.dispatchEvent(evt);
-					} else {
+						teCombo.dispatchEvent(new Event('change', { bubbles: true }));
+					} else if(teCombo.fireEvent) {
 						teCombo.fireEvent('onchange');
 					}
-					console.log('언어 변경:', lang);
-				} else {
-					// 위젯이 아직 준비되지 않았으면 재시도
-					console.log('Google Translate 위젯 대기 중...');
-					setTimeout(function() {
-						doGTranslateCustom(lang_pair);
-					}, 300);
 				}
+
+				// 페이지 리로드하여 번역 적용
+				setTimeout(function() {
+					window.location.reload();
+				}, 100);
 			}
 
-			// 페이지 로드 후 Google Translate 초기화 확인
-			(function() {
-				var checkGoogleTranslate = setInterval(function() {
-					if (typeof google !== 'undefined' && google.translate && !translateInitialized) {
-						clearInterval(checkGoogleTranslate);
+			// 페이지 로드 시 Google Translate 자동 초기화
+			if (typeof google !== 'undefined' && google.translate) {
+				googleTranslateElementInit2();
+			} else {
+				// Google API 로드 대기
+				var gtCheckInterval = setInterval(function() {
+					if (typeof google !== 'undefined' && google.translate) {
+						clearInterval(gtCheckInterval);
 						googleTranslateElementInit2();
 					}
-				}, 500);
+				}, 100);
 
-				// 10초 후에도 초기화 안 되면 중지
+				// 10초 후 타임아웃
 				setTimeout(function() {
-					clearInterval(checkGoogleTranslate);
+					clearInterval(gtCheckInterval);
 				}, 10000);
-			})();
+			}
 
 			// ============================================
 			// 2. 다크 모드 기능
