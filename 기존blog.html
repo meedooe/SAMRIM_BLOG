@@ -1916,31 +1916,31 @@
 										<!-- 배경음악 -->
 										<div class="module module_plugin">
 											<h2 id="bgm-title">
-												<span class="bgm-header">&#xe077;</span>
+												<span class="bgm-header">🎵</span>
 												<span class="bgm-title-wrap">
 													<span class="bgm-title-box">
 														<span id="current-bgm">플레이 버튼을 눌러 주세요</span>
 													</span>
 												</span>
-												<button class="bgm-btn" onclick="bgmMute()" style="margin:auto;" id='bgm-mute'>
-													&#xf6a9; <!-- mute btn -->
+												<button class="bgm-btn" onclick="bgmMute()" style="margin:auto;font-size:1em;" id='bgm-mute'>
+													🔊
 												</button>
 											</h2>
 											<div class="bgm-box">
-												<button class="bgm-btn" onclick="nextBgm('-')" style="margin:auto;">
-													&#xf048; <!-- prev btn -->
+												<button class="bgm-btn" onclick="nextBgm('-')" style="margin:auto;font-size:1em;" title="이전 곡">
+													⏮️
 												</button>
-												<button class="bgm-btn" onclick="toggleBgm()" id='bgm-switch' style="margin:auto;">
-													<span id="bgm-status">&#xf04b;</span> <!-- play btn -->
+												<button class="bgm-btn" onclick="toggleBgm()" id='bgm-switch' style="margin:auto;font-size:1em;" title="재생/일시정지">
+													<span id="bgm-status">▶️</span>
 												</button>
-												<button class="bgm-btn" onclick="nextBgm('+')" style="margin:auto;">
-													&#xf051; <!-- next btn -->
+												<button class="bgm-btn" onclick="nextBgm('+')" style="margin:auto;font-size:1em;" title="다음 곡">
+													⏭️
 												</button>
-												<button class="bgm-btn" onclick="bgmVolume('+')" style="margin:auto;">
-													&#xf028; <!-- volume up btn -->
+												<button class="bgm-btn" onclick="bgmVolume('+')" style="margin:auto;font-size:1em;" title="볼륨 올리기">
+													🔊
 												</button>
-												<button class="bgm-btn" onclick="bgmVolume('-')" style="margin:auto;">
-													&#xf027; <!-- volume down btn -->
+												<button class="bgm-btn" onclick="bgmVolume('-')" style="margin:auto;font-size:1em;" title="볼륨 내리기">
+													🔉
 												</button>
 											</div>
 										</div>
@@ -3204,6 +3204,186 @@
 				htmlElement.style.setProperty('font-size', newSize + 'px', 'important');
 				localStorage.setItem('fontSize', newSize);
 			}
+
+			// ============================================
+			// 4. 배경음악 플레이어 기능
+			// ============================================
+			var bgmPlayer = (function() {
+				var audio = document.getElementById('bgm');
+				var currentTrackIndex = 0;
+				var playlist = [];
+				var isMuted = false;
+				var currentVolume = 0.5;
+
+				// 플레이리스트 초기화
+				function initPlaylist() {
+					// 기본 음악 (무료 샘플 음악)
+					playlist = [
+						{
+							title: "Chill Lofi Beat",
+							src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+						},
+						{
+							title: "Acoustic Breeze",
+							src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+						},
+						{
+							title: "Sunny Day",
+							src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+						}
+					];
+
+					// 티스토리 설정에서 음악 URL 가져오기
+					for(var i = 1; i <= 10; i++) {
+						var srcInput = document.getElementById('bgm-src-' + i);
+						var titleInput = document.getElementById('bgm-title-' + i);
+
+						if(srcInput && srcInput.value && srcInput.value.trim() !== '') {
+							// 첫 번째 커스텀 음악이면 기본 플레이리스트 초기화
+							if(i === 1 && srcInput.value.trim() !== '') {
+								playlist = [];
+							}
+
+							playlist.push({
+								title: titleInput && titleInput.value ? titleInput.value : '배경음악 ' + i,
+								src: srcInput.value
+							});
+						}
+					}
+
+					// 플레이리스트가 비어있으면 기본 음악 사용
+					if(playlist.length === 0) {
+						playlist = [
+							{
+								title: "기본 배경음악",
+								src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+							}
+						];
+					}
+
+					// 오디오 이벤트 리스너
+					audio.addEventListener('ended', function() {
+						nextBgm('+');
+					});
+
+					// 볼륨 초기 설정
+					audio.volume = currentVolume;
+				}
+
+				// 트랙 로드
+				function loadTrack(index) {
+					if(playlist.length === 0) return;
+
+					currentTrackIndex = index % playlist.length;
+					if(currentTrackIndex < 0) {
+						currentTrackIndex = playlist.length - 1;
+					}
+
+					var track = playlist[currentTrackIndex];
+					audio.src = track.src;
+
+					// 현재 재생 중인 곡 제목 표시
+					var titleElement = document.getElementById('current-bgm');
+					if(titleElement) {
+						titleElement.textContent = track.title;
+					}
+				}
+
+				return {
+					init: initPlaylist,
+					loadTrack: loadTrack,
+					getAudio: function() { return audio; },
+					getPlaylist: function() { return playlist; },
+					getCurrentIndex: function() { return currentTrackIndex; },
+					setCurrentIndex: function(index) { currentTrackIndex = index; },
+					isMuted: function() { return isMuted; },
+					setMuted: function(muted) { isMuted = muted; },
+					getVolume: function() { return currentVolume; },
+					setVolume: function(vol) {
+						currentVolume = Math.max(0, Math.min(1, vol));
+						audio.volume = currentVolume;
+					}
+				};
+			})();
+
+			// 재생/일시정지 토글
+			function toggleBgm() {
+				var audio = bgmPlayer.getAudio();
+				var statusIcon = document.getElementById('bgm-status');
+
+				if(audio.paused) {
+					// 처음 재생 시 트랙 로드
+					if(!audio.src || audio.src === '') {
+						bgmPlayer.loadTrack(0);
+					}
+
+					audio.play().then(function() {
+						if(statusIcon) {
+							statusIcon.textContent = '⏸️';
+						}
+					}).catch(function(error) {
+						console.error('재생 오류:', error);
+						alert('음악 재생 중 오류가 발생했습니다. 음악 파일 URL을 확인해주세요.');
+					});
+				} else {
+					audio.pause();
+					if(statusIcon) {
+						statusIcon.textContent = '▶️';
+					}
+				}
+			}
+
+			// 다음/이전 곡
+			function nextBgm(direction) {
+				var audio = bgmPlayer.getAudio();
+				var currentIndex = bgmPlayer.getCurrentIndex();
+				var wasPlaying = !audio.paused;
+
+				if(direction === '+') {
+					bgmPlayer.loadTrack(currentIndex + 1);
+				} else {
+					bgmPlayer.loadTrack(currentIndex - 1);
+				}
+
+				// 재생 중이었으면 자동 재생
+				if(wasPlaying) {
+					audio.play().catch(function(error) {
+						console.error('재생 오류:', error);
+					});
+				}
+			}
+
+			// 음소거 토글
+			function bgmMute() {
+				var audio = bgmPlayer.getAudio();
+				var muteBtn = document.getElementById('bgm-mute');
+
+				audio.muted = !audio.muted;
+				bgmPlayer.setMuted(audio.muted);
+
+				if(muteBtn) {
+					muteBtn.textContent = audio.muted ? '🔇' : '🔊';
+				}
+			}
+
+			// 볼륨 조절
+			function bgmVolume(direction) {
+				var currentVol = bgmPlayer.getVolume();
+				var newVol;
+
+				if(direction === '+') {
+					newVol = Math.min(currentVol + 0.1, 1.0);
+				} else {
+					newVol = Math.max(currentVol - 0.1, 0);
+				}
+
+				bgmPlayer.setVolume(newVol);
+			}
+
+			// 페이지 로드 시 배경음악 초기화
+			window.addEventListener('DOMContentLoaded', function() {
+				bgmPlayer.init();
+			});
 		</script>
 	</body>
 </html>
