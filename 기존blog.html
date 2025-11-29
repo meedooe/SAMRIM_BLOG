@@ -3322,40 +3322,77 @@
 				};
 			})();
 
-			// YouTube IFrame API 로드
-			var tag = document.createElement('script');
-			tag.src = "https://www.youtube.com/iframe_api";
-			var firstScriptTag = document.getElementsByTagName('script')[0];
-			firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-			// YouTube IFrame API 준비 완료 시 호출되는 함수
-			function onYouTubeIframeAPIReady() {
+			// YouTube IFrame API 준비 완료 시 호출되는 전역 함수
+			window.onYouTubeIframeAPIReady = function() {
+				console.log('YouTube API 로드 완료');
 				bgmPlayer.init();
 
-				var player = new YT.Player('bgm-player', {
-					height: '0',
-					width: '0',
-					videoId: bgmPlayer.getPlaylist()[0].videoId,
-					playerVars: {
-						'autoplay': 0,
-						'controls': 0,
-						'modestbranding': 1,
-						'rel': 0
-					},
-					events: {
-						'onReady': onPlayerReady,
-						'onStateChange': onPlayerStateChange
-					}
-				});
+				setTimeout(function() {
+					try {
+						var player = new YT.Player('bgm-player', {
+							height: '1',
+							width: '1',
+							videoId: bgmPlayer.getPlaylist()[0].videoId,
+							playerVars: {
+								'autoplay': 0,
+								'controls': 0,
+								'modestbranding': 1,
+								'rel': 0,
+								'playsinline': 1,
+								'enablejsapi': 1
+							},
+							events: {
+								'onReady': onPlayerReady,
+								'onStateChange': onPlayerStateChange,
+								'onError': function(event) {
+									console.error('YouTube 플레이어 오류:', event.data);
+									alert('YouTube 플레이어 오류가 발생했습니다. 페이지를 새로고침해주세요.');
+								}
+							}
+						});
 
-				bgmPlayer.setPlayer(player);
-			}
+						bgmPlayer.setPlayer(player);
+						console.log('YouTube 플레이어 생성 요청 완료');
+					} catch(e) {
+						console.error('플레이어 생성 오류:', e);
+						alert('플레이어를 생성할 수 없습니다: ' + e.message);
+					}
+				}, 100);
+			};
+
+			// YouTube IFrame API 로드
+			(function() {
+				// 이미 로드되어 있는지 확인
+				if(window.YT && window.YT.Player) {
+					console.log('YouTube API 이미 로드됨');
+					window.onYouTubeIframeAPIReady();
+					return;
+				}
+
+				console.log('YouTube API 로드 시작');
+				var tag = document.createElement('script');
+				tag.src = "https://www.youtube.com/iframe_api";
+				tag.onerror = function() {
+					console.error('YouTube API 로드 실패');
+					alert('YouTube API를 로드할 수 없습니다. 인터넷 연결을 확인해주세요.');
+				};
+				var firstScriptTag = document.getElementsByTagName('script')[0];
+				firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+			})();
 
 			// 플레이어 준비 완료
 			function onPlayerReady(event) {
 				bgmPlayer.setPlayerReady(true);
 				bgmPlayer.setVolume(50); // 초기 볼륨 50%
-				console.log('YouTube 플레이어 준비 완료');
+
+				// 첫 번째 곡 로드
+				var titleElement = document.getElementById('current-bgm');
+				if(titleElement) {
+					titleElement.textContent = bgmPlayer.getPlaylist()[0].title;
+				}
+
+				console.log('YouTube 플레이어 준비 완료!');
+				console.log('▶️ 버튼을 클릭하여 음악을 재생하세요.');
 			}
 
 			// 플레이어 상태 변경
@@ -3380,26 +3417,42 @@
 
 			// 재생/일시정지 토글
 			function toggleBgm() {
+				console.log('toggleBgm 호출됨');
 				var player = bgmPlayer.getPlayer();
 				var statusIcon = document.getElementById('bgm-status');
 
-				if(!player || !bgmPlayer.isPlayerReady()) {
+				if(!player) {
+					console.error('플레이어 객체가 없습니다');
+					alert('플레이어가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+					return;
+				}
+
+				if(!bgmPlayer.isPlayerReady()) {
+					console.warn('플레이어가 아직 준비되지 않았습니다');
 					alert('플레이어가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.');
 					return;
 				}
 
-				var state = player.getPlayerState();
+				try {
+					var state = player.getPlayerState();
+					console.log('현재 플레이어 상태:', state);
 
-				if(state === YT.PlayerState.PLAYING) {
-					player.pauseVideo();
-					if(statusIcon) {
-						statusIcon.textContent = '▶️';
+					if(state === YT.PlayerState.PLAYING) {
+						console.log('일시정지 시도');
+						player.pauseVideo();
+						if(statusIcon) {
+							statusIcon.textContent = '▶️';
+						}
+					} else {
+						console.log('재생 시도');
+						player.playVideo();
+						if(statusIcon) {
+							statusIcon.textContent = '⏸️';
+						}
 					}
-				} else {
-					player.playVideo();
-					if(statusIcon) {
-						statusIcon.textContent = '⏸️';
-					}
+				} catch(e) {
+					console.error('재생 오류:', e);
+					alert('재생 중 오류가 발생했습니다: ' + e.message);
 				}
 			}
 
