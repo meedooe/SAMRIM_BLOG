@@ -2551,58 +2551,84 @@
 											<s_if_var_in-article-ads>
 												<script>
 													(function() {
-														var articleBody = document.getElementById('article-content');
-														if (!articleBody) return;
-
-														// 본문의 모든 p 태그 찾기
-														var paragraphs = articleBody.querySelectorAll('p');
-														if (paragraphs.length < 3) return; // 문단이 3개 미만이면 광고 삽입 안 함
-
-														// 2번째 문단 뒤에 첫 번째 In-Article 광고 삽입
-														if (paragraphs.length >= 2) {
-															var ad1 = document.createElement('div');
-															ad1.className = 'in-article-ad';
-															ad1.innerHTML = '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"><\/script>' +
-																'<ins class="adsbygoogle" ' +
-																'style="display:block; text-align:center; margin: 30px 0;" ' +
-																'data-ad-layout="in-article" ' +
-																'data-ad-format="fluid" ' +
-																'data-ad-client="[##_var_data-ad-client_##]" ' +
-																'data-ad-slot="[##_var_in-article-data-ad-slot-1_##]"></ins>';
-
-															paragraphs[1].parentNode.insertBefore(ad1, paragraphs[1].nextSibling);
-
-															// adsbygoogle 스크립트 실행
-															setTimeout(function() {
-																try {
-																	(adsbygoogle = window.adsbygoogle || []).push({});
-																} catch(e) {
-																	console.log('In-article ad 1 push error:', e);
-																}
-															}, 300);
+														// 페이지 로드 완료 후 실행
+														if (document.readyState === 'loading') {
+															document.addEventListener('DOMContentLoaded', insertInArticleAds);
+														} else {
+															insertInArticleAds();
 														}
 
-														// 4번째 문단 뒤에 두 번째 In-Article 광고 삽입 (문단이 충분히 많을 경우)
-														if (paragraphs.length >= 5) {
-															var ad2 = document.createElement('div');
-															ad2.className = 'in-article-ad';
-															ad2.innerHTML = '<ins class="adsbygoogle" ' +
-																'style="display:block; text-align:center; margin: 30px 0;" ' +
-																'data-ad-layout="in-article" ' +
-																'data-ad-format="fluid" ' +
-																'data-ad-client="[##_var_data-ad-client_##]" ' +
-																'data-ad-slot="[##_var_in-article-data-ad-slot-2_##]"></ins>';
+														function insertInArticleAds() {
+															var articleBody = document.getElementById('article-content');
+															if (!articleBody) {
+																console.log('article-content not found');
+																return;
+															}
 
-															paragraphs[4].parentNode.insertBefore(ad2, paragraphs[4].nextSibling);
+															// 본문의 모든 p 태그 찾기
+															var paragraphs = articleBody.querySelectorAll('p');
+															console.log('Found ' + paragraphs.length + ' paragraphs');
 
-															// adsbygoogle 스크립트 실행
-															setTimeout(function() {
-																try {
-																	(adsbygoogle = window.adsbygoogle || []).push({});
-																} catch(e) {
-																	console.log('In-article ad 2 push error:', e);
-																}
-															}, 500);
+															if (paragraphs.length < 3) {
+																console.log('Not enough paragraphs for in-article ads');
+																return;
+															}
+
+															// 2번째 문단 뒤에 첫 번째 In-Article 광고 삽입
+															if (paragraphs.length >= 2) {
+																var ad1Container = document.createElement('div');
+																ad1Container.className = 'in-article-ad';
+																ad1Container.style.cssText = 'margin: 30px auto; padding: 20px 0; max-width: 100%; text-align: center; clear: both;';
+
+																var ad1 = document.createElement('ins');
+																ad1.className = 'adsbygoogle';
+																ad1.style.cssText = 'display:block; text-align:center;';
+																ad1.setAttribute('data-ad-layout', 'in-article');
+																ad1.setAttribute('data-ad-format', 'fluid');
+																ad1.setAttribute('data-ad-client', '[##_var_data-ad-client_##]');
+																ad1.setAttribute('data-ad-slot', '[##_var_in-article-data-ad-slot-1_##]');
+
+																ad1Container.appendChild(ad1);
+																paragraphs[1].parentNode.insertBefore(ad1Container, paragraphs[1].nextSibling);
+
+																// adsbygoogle 스크립트 실행
+																setTimeout(function() {
+																	try {
+																		(adsbygoogle = window.adsbygoogle || []).push({});
+																		console.log('In-article ad 1 inserted');
+																	} catch(e) {
+																		console.log('In-article ad 1 push error:', e);
+																	}
+																}, 500);
+															}
+
+															// 4번째 문단 뒤에 두 번째 In-Article 광고 삽입 (문단이 충분히 많을 경우)
+															if (paragraphs.length >= 5) {
+																var ad2Container = document.createElement('div');
+																ad2Container.className = 'in-article-ad';
+																ad2Container.style.cssText = 'margin: 30px auto; padding: 20px 0; max-width: 100%; text-align: center; clear: both;';
+
+																var ad2 = document.createElement('ins');
+																ad2.className = 'adsbygoogle';
+																ad2.style.cssText = 'display:block; text-align:center;';
+																ad2.setAttribute('data-ad-layout', 'in-article');
+																ad2.setAttribute('data-ad-format', 'fluid');
+																ad2.setAttribute('data-ad-client', '[##_var_data-ad-client_##]');
+																ad2.setAttribute('data-ad-slot', '[##_var_in-article-data-ad-slot-2_##]');
+
+																ad2Container.appendChild(ad2);
+																paragraphs[4].parentNode.insertBefore(ad2Container, paragraphs[4].nextSibling);
+
+																// adsbygoogle 스크립트 실행
+																setTimeout(function() {
+																	try {
+																		(adsbygoogle = window.adsbygoogle || []).push({});
+																		console.log('In-article ad 2 inserted');
+																	} catch(e) {
+																		console.log('In-article ad 2 push error:', e);
+																	}
+																}, 800);
+															}
 														}
 													})();
 												</script>

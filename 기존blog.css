@@ -3120,7 +3120,11 @@ body.dark-mode .content-article .in-article-ad::after {
 	background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
 }
 
-/* 광고 로딩 시 깜빡임 방지 */
+/* 광고 로딩 및 표시 최적화 */
 .adsbygoogle {
-	min-height: 100px;
+	overflow: hidden;
+}
+
+.adsbygoogle[data-ad-status="unfilled"] {
+	display: none !important;
 }
