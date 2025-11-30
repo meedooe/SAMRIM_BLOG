@@ -8,8 +8,8 @@
 		<!-- <link rel="preconnect" href="https://fonts.googleapis.com"> -->
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=auto" as="font" crossorigin="anonymous">
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:ital,wght@0,400;0,600;1,400;1,600&display=auto" as="font" crossorigin="anonymous">
-		<link rel="preload" href="./style.css" as="style">
-		<link rel="stylesheet" href="./style.css">
+		<link rel="preload" href="./기존blog.css" as="style">
+		<link rel="stylesheet" href="./기존blog.css">
 		<!-- custom.css 파일이 없어서 404 오류 발생하므로 제거 -->
 		<style>
 			<s_if_var_custom-font>
@@ -1667,98 +1667,6 @@
 					padding-left: 5px;
 				}
 			</s_not_var_list-thum-yn>
-
-			/* 광고 스타일 개선 - 자연스럽고 클릭률 높이기 */
-
-			/* 글 중간 In-Article 광고 스타일 */
-			.in-article-ad {
-				margin: 30px auto;
-				padding: 20px 0;
-				max-width: 100%;
-				text-align: center;
-				clear: both;
-			}
-
-			.in-article-ad .adsbygoogle {
-				background: transparent;
-				border-radius: 8px;
-				overflow: hidden;
-			}
-
-			/* 사이드바 스티키 광고 */
-			.sticky-sidebar-ad {
-				position: sticky !important;
-				top: 20px;
-				z-index: 100;
-				transition: all 0.3s ease;
-			}
-
-			@media (max-width: 1280px) {
-				.sticky-sidebar-ad {
-					position: relative !important;
-					top: 0;
-				}
-			}
-
-			/* 광고가 자연스럽게 보이도록 여백 및 배경 조정 */
-			.revenue_unit_item.adsense {
-				margin: 15px auto;
-				padding: 10px;
-				background: transparent;
-				border-radius: 8px;
-			}
-
-			body.dark-mode .revenue_unit_item.adsense {
-				background: rgba(255, 255, 255, 0.03);
-			}
-
-			/* 상단/하단 광고 컨테이너 스타일 */
-			.top-ads, .bottom-ads {
-				display: flex;
-				justify-content: center;
-				gap: 20px;
-				flex-wrap: wrap;
-				margin: 30px 0;
-				padding: 20px 0;
-			}
-
-			/* 모바일에서 광고 최적화 */
-			@media (max-width: 768px) {
-				.in-article-ad {
-					margin: 20px auto;
-					padding: 15px 0;
-				}
-
-				.top-ads, .bottom-ads {
-					gap: 15px;
-					margin: 20px 0;
-					padding: 15px 0;
-				}
-
-				#ad-top-left, #ad-bottom-left {
-					max-width: 100%;
-				}
-			}
-
-			/* 광고와 본문 사이 자연스러운 구분 */
-			.content-article .in-article-ad::before,
-			.content-article .in-article-ad::after {
-				content: "";
-				display: block;
-				height: 1px;
-				background: linear-gradient(to right, transparent, rgba(0,0,0,0.05), transparent);
-				margin: 10px 0;
-			}
-
-			body.dark-mode .content-article .in-article-ad::before,
-			body.dark-mode .content-article .in-article-ad::after {
-				background: linear-gradient(to right, transparent, rgba(255,255,255,0.05), transparent);
-			}
-
-			/* 광고 로딩 시 깜빡임 방지 */
-			.adsbygoogle {
-				min-height: 100px;
-			}
 		</style>
 		<script>
 			window.$ = window.jQuery = window.tjQuery;
